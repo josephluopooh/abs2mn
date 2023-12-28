@@ -1,13 +1,13 @@
 import socket
 from functools import cache
-from os import getcwd
+import os
 
 from cachelib import FileSystemCache
 
 import utils
 
 BOARD_SIZE_TTT = 3
-CACHE_DIR = getcwd() + "\\.cache"
+CACHE_DIR = os.getcwd() + ("\\.cache" if os.name == "nt" else "/.cache") # check os library for this
 
 best_move_cache = FileSystemCache(CACHE_DIR, 0, 0)
 

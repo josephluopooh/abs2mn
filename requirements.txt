@@ -1,2 +1,1 @@
-cachelib==0.10.2
-windows-curses==2.3.2
+-r requirements/common.txt
