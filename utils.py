@@ -45,6 +45,36 @@ class TerminalScreen:
         curses.noecho()
         return ascii_input
 
+    def get_online_mode(self) -> bool:
+        playing_as_host = None
+        while playing_as_host == None or playing_as_host not in {0, 1}:
+            if playing_as_host:
+                self.show_info_message("Invalid choice, 0 for no or 1 for yes.")
+            try:
+                ascii_input = self.get_ascii_input(
+                    "Do you want to play as the host or not? 0 for no, or 1 for yes."
+                )
+                playing_as_host = int(ascii_input)
+            except ValueError:
+                self.show_info_message("Wrong format.")
+                continue
+        return bool(playing_as_host)
+
+    def get_bot_type(self, bot_range: int) -> int:
+        bot_type = None
+        while bot_type == None or bot_type not in range(bot_range):
+            if bot_type:
+                self.show_info_message("Invalid choice.")
+            try:
+                ascii_input = self.get_ascii_input(
+                    f"Choose a bot. Range is 1~{bot_range - 1}."
+                )
+                bot_type = int(ascii_input)
+            except ValueError:
+                self.show_info_message("Wrong format.")
+                continue
+        return bot_type
+
 
 def _random_int(width: int) -> int:
     bres = os.urandom(width)
@@ -84,39 +114,6 @@ def get_from_cache(best_move_cache: FileSystemCache, cache_key: str) -> Any:
     return move
 
 
-# TODO refactor this part
-def get_online_mode(terminal_screen: TerminalScreen) -> bool:
-    playing_as_host = None
-    while playing_as_host == None or playing_as_host not in {0, 1}:
-        if playing_as_host:
-            terminal_screen.show_info_message("Invalid choice, 0 for no or 1 for yes.")
-        try:
-            ascii_input = terminal_screen.get_ascii_input(
-                "Do you want to play as the host or not? 0 for no, or 1 for yes."
-            )
-            playing_as_host = int(ascii_input)
-        except ValueError:
-            terminal_screen.show_info_message("Wrong format.")
-            continue
-    return bool(playing_as_host)
-
-
-def get_bot_type(terminal_screen: TerminalScreen, bot_range: int) -> int:
-    bot_type = None
-    while bot_type == None or bot_type not in range(bot_range):
-        if bot_type:
-            terminal_screen.show_info_message("Invalid choice.")
-        try:
-            ascii_input = terminal_screen.get_ascii_input(
-                f"Choose a bot. Range is 1~{bot_range - 1}."
-            )
-            bot_type = int(ascii_input)
-        except ValueError:
-            terminal_screen.show_info_message("Wrong format.")
-            continue
-    return bot_type
-
-
 class Player:
     def __init__(
         self,
@@ -126,7 +123,7 @@ class Player:
     ):
         self.mark = mark  # Is it necessary? Rewrite this class TODO
         self.bot_type = (
-            bot_type if bot_type else get_bot_type(bot_init_info[0], bot_init_info[1])
+            bot_type if bot_type else bot_init_info[0].get_bot_type(bot_init_info[1])
         )
 
 
@@ -137,7 +134,7 @@ class OnlinePlayer(Player):
         self.mark = mark
         self.is_yourself = is_yourself
         self._bot_type = (
-            get_bot_type(bot_init_info[0], bot_init_info[1]) if is_yourself else None
+            bot_init_info[0].get_bot_type(bot_init_info[1]) if is_yourself else None
         )
 
     @property
@@ -305,16 +302,6 @@ def repeat_games(
     )
 
 
-def move_to_next_position(
-    current_position: tuple[int, int], board_size: int
-) -> tuple[int, int]:
-    return (
-        (current_position[0] + 1, 0)
-        if current_position[1] == board_size - 1
-        else (current_position[0], current_position[1] + 1)
-    )
-
-
 def initialize_game(
     terminal_screen: TerminalScreen,
     args: argparse.Namespace,
@@ -324,7 +311,7 @@ def initialize_game(
     board_size: int,
 ) -> Game:
     if args.online:
-        playing_as_host = get_online_mode(terminal_screen)
+        playing_as_host = terminal_screen.get_online_mode()
         # host
         if playing_as_host:
             waiting_sock = host_the_game()
